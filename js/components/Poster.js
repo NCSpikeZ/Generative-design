@@ -41,44 +41,15 @@ class Poster{
         this.context = context;
         this.rendererOptions = rendererOptions;
         this.setInfos();
-        this.preview = new ChildPoster( this.width, this.height, this.innerWidth, this.innerHeight, { parent: parent, preview: true, context: context, rendererOptions: rendererOptions } );
+        this.preview = new ChildPoster( this.width, this.height, this.innerWidth, this.innerHeight, this.gut, { parent: parent, preview: true, context: context, rendererOptions: rendererOptions } );
     }
 
-    async draw( canvas = this.preview ) {
-        const options = {};
+    drawFooter( poster, ctx ) {
 
-        if( this.context === '2d' ){
-            options.ctx = canvas.getContext();
-            options.width = canvas.getWidth();
-            options.height = canvas.getHeight();
-            options.canvas = canvas.innerCanvas;
-            this._draw( options )
-            .then( ( result ) => {
-                this.drawPoster( canvas );
-            });
-        } else{
-            options.width = canvas.innerCanvas.width;
-            options.height = canvas.innerCanvas.height;
-            options.canvas = canvas.innerCanvas;
-            this._draw( options )
-            .then( ( result ) => {
-                this.drawPoster( canvas );
-            });
-
-        }        
-    }
-
-    async drawPoster( _poster ) {
-        const poster = _poster.self,
-              innerPoster = _poster.innerCanvas,
-              ctx = poster.ctx;
-        
         ctx.save();
             ctx.fillStyle = 'white';
             ctx.fillRect( 0, 0, poster.width, poster.height );
         ctx.restore();
-
-        // const img = innerPoster.getPixels();
 
         let bbox,
             fontHeight,
@@ -95,6 +66,60 @@ class Poster{
         bbox = ctx.measureText( by );
         fontHeight = bbox.actualBoundingBoxAscent + bbox.actualBoundingBoxDescent;
         ctx.fillText( by, this.gut, textY + fontHeight + Poster.cm * 0.25 );
+    }
+
+    // draw( canvas = this.preview ) {
+    //     const options = {};
+
+    //     if( this.context === '2d' ){
+    //         options.ctx = canvas.getContext();
+    //         options.width = canvas.getWidth();
+    //         options.height = canvas.getHeight();
+    //         options.canvas = canvas.innerCanvas;
+    //     } else{
+    //         options.width = canvas.innerCanvas.width;
+    //         options.height = canvas.innerCanvas.height;
+    //         options.canvas = canvas.innerCanvas;
+    //     }   
+        
+    // }
+
+    async draw( canvas = this.preview, toExport = false ) {
+        const options = {};
+
+        if( this.context === '2d' ){
+            options.ctx = canvas.getContext();
+            options.width = canvas.getWidth();
+            options.height = canvas.getHeight();
+            options.canvas = canvas.innerCanvas;
+        } else{
+            options.width = canvas.innerCanvas.width;
+            options.height = canvas.innerCanvas.height;
+            options.canvas = canvas.innerCanvas;
+        }        
+
+        if( toExport ){
+            this._draw( options )
+            .then( ( result ) => {
+                this.drawPoster( canvas );
+            });
+        } else {
+            const poster = canvas.self,
+            ctx = poster.ctx;
+            
+            this._draw( options );
+            this.drawFooter( poster, ctx );
+        }
+
+ 
+    }
+
+    async drawPoster( _poster ) {
+        const poster = _poster.self,
+              innerPoster = _poster.innerCanvas,
+              ctx = poster.ctx;
+
+        this.drawFooter( poster, ctx );
 
         Canvas.loadImage( innerPoster.self.toDataURL( "image/png" ) )
             .then( ( image ) => {
@@ -129,15 +154,13 @@ class Poster{
 
     export( _format = 'a4' ) {
         const format = Poster.formats[ _format ];
-        const a4 = new ChildPoster( format.width, format.height, this.innerWidth, this.innerHeight, { scaling: format.realRatio, preview: false, toExport: true, format: _format, context: this.context, rendererOptions: this.rendererOptions } );
-        this.draw( a4 );
+        const poster = new ChildPoster( format.width, format.height, this.innerWidth, this.innerHeight, this.gut, { scaling: format.realRatio, preview: false, toExport: true, format: _format, context: this.context, rendererOptions: this.rendererOptions } );
+        this.draw( poster, true );
     }
 }
 
 class ChildPoster{
-
-
-    constructor( width, height, innerWidth, innerHeight, { parent = '.main-wrapper', preview = false, scaling = window.devicePixelRatio, margin = 2, toExport = false, format = null, context = "2d", rendererOptions = {} } = {} ) {
+    constructor( width, height, innerWidth, innerHeight, gut, { parent = '.main-wrapper', preview = false, scaling = window.devicePixelRatio, margin = 2, toExport = false, format = null, context = "2d", rendererOptions = {} } = {} ) {
         const options = {
             parent: parent,
             append: preview,
@@ -156,6 +179,12 @@ class ChildPoster{
         this.format = format;
 
         if( preview ){
+            document.querySelector( '.main-wrapper' ).append( this.innerCanvas.self );
+            this.innerCanvas.self.classList.add( 'preview' );
+            this.innerCanvas.self.style.setProperty( '--factor-h', this.innerCanvas.width / width );
+            this.innerCanvas.self.style.setProperty( '--factor-v', this.innerCanvas.height / height );
+            this.innerCanvas.self.style.setProperty( '--gut-v', gut / height );
+
             this.self.self.style.setProperty( '--ratio-w', width / height );
             this.self.self.style.setProperty( '--ratio-h', height / width );
             this.self.self.style.setProperty( '--width',  width + 'px' );

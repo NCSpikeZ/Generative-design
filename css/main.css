@@ -112,10 +112,18 @@ body {
   justify-items: center;
   grid-area: paper;
   box-shadow: 0 0 2.4rem rgba(0, 0, 0, 0.15);
+  position: relative;
 }
 .main-wrapper canvas.fullscreen {
   width: calc((100vmin - 10vw) * var(--ratio-w, 1)) !important;
   height: calc(100vmin - 10vw) !important;
+}
+
+.preview {
+  width: calc(100% * var(--factor-h, 1)) !important;
+  height: calc(100% * var(--factor-v, 1)) !important;
+  position: absolute;
+  top: calc(100% * var(--gut-v, 1));
 }
 
 .tp-dfwv {

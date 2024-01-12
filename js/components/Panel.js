@@ -46,12 +46,18 @@ const initPanel = ( options, poster ) => {
 
     // EVENTS
 
-    fullscreenBtn.on( 'change', ( e ) => {
-        if( e.value === true ){
+    const updateFullscreen = ( value ) => {
+        if( value === true ){
             poster.preview.self.self.classList.add('fullscreen');
         } else {
             poster.preview.self.self.classList.remove('fullscreen');
         }
+    };
+
+    updateFullscreen( options.fullScreen );
+
+    fullscreenBtn.on( 'change', ( e ) => {
+        updateFullscreen( e.value );
     } );
 
     infosFolder.on( 'change', () => {
