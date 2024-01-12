@@ -33,9 +33,16 @@ const draw = async ( options ) => {
       constructor({ position, velocity }) {
         this.position = position // {x, y}
         this.velocity = velocity 
+        this.rotation = 0
       }
     
       draw() {
+        options.ctx.save()
+
+        options.ctx.translate(this.position.x, this.position.y)
+        options.ctx.rotate(this.rotation)
+        options.ctx.translate(-this.position.x, -this.position.y)
+
         options.ctx.arc(this.position.x, this.position.y, 5, 0, Math.PI * 2, false)
         options.ctx.fillStyle= 'red'
         options.ctx.fill()
@@ -48,13 +55,44 @@ const draw = async ( options ) => {
 
         options.ctx.strokeStyle= 'white',
         options.ctx.stroke()
+
+        options.ctx.restore()
       }
 
       update(){
         this.draw()
+        console.log(this.position.x)
         this.position.x += this.velocity.x
         this.position.y += this.velocity.y
-        console.log(this.position.x)
+      }
+    }
+
+    class Projectile {
+      constructor({position, velocity}) {
+        this.position = position
+        this.velocity = velocity
+        this.radius = 5 // taille projectile
+      }
+
+      draw(){
+        options.ctx.beginPath()
+        options.ctx.arc(
+          this.position.x,
+          this.position.y,
+          this.radius,
+          0,
+          Math.PI * 2,
+          false
+        )
+        options.ctx.closePath()
+        options.ctx.fillStyle = 'white'
+        options.ctx.fill()
+      }
+
+      update() {
+        this.draw()
+        this.position.x += this.velocity.x
+        this.position.y += this.velocity.y
       }
     }
     
@@ -67,7 +105,19 @@ const draw = async ( options ) => {
       w: {
         pressed: false,
       },
+      a: {
+        pressed: false,
+      },
+      d: {
+        pressed: false,
+      },
     }
+
+    const SPEED = 3
+    const ROTATE_SPEED = 0.05
+    const FRICTION = .97
+
+    const projectiles = []
 
     function animate() {
       window.requestAnimationFrame(animate)
@@ -76,24 +126,64 @@ const draw = async ( options ) => {
 
       player.update()
 
-      if (keys.w.pressed) player.velocity.x = 1
+      for (let i = projectiles.length - 1; i >= 0; i--){
+        const projectile = projectiles[i]
+        projectile.update()
+      }
+
+      if (keys.w.pressed) {
+        player.velocity.x = Math.cos(player.rotation) * SPEED
+        player.velocity.y = Math.sin(player.rotation) * SPEED 
+      } else if (!keys.w.pressed) {
+        player.velocity.x *= FRICTION // Pour decelerer de maniére progressive
+        player.velocity.y *= FRICTION
+      }
+
+      if(keys.d.pressed) player.rotation += ROTATE_SPEED
+      else if (keys.a.pressed) player.rotation -= ROTATE_SPEED
     }
 
     animate()
 
     window.addEventListener('keydown', (event) => {
       switch (event.code) {
-      case 'KeyW':
-        keys.w.pressed = true
-        break
-      case 'KeyA':
-        break
-      case 'KeyS':
-        break
-      case 'KeyD':
-        break
+        case 'KeyW':
+          keys.w.pressed = true
+          break
+        case 'KeyA':
+          keys.a.pressed = true
+          break
+        case 'KeyD':
+          keys.d.pressed = true
+          break
+        case 'Space':
+          projectiles.push(
+            new Projectile({
+              position: {
+                x: player.position.x + Math.cos(player.rotation) * 30, // pour tirer depuis le bout du vaisseau
+                y: player.position.y
+              },
+              velocity: {
+                x: 1,
+                y: 0,
+              }
+            })
+          )
       }
-      console.log(event)
+    })
+
+    window.addEventListener('keyup', (event) => {
+      switch (event.code) {
+        case 'KeyW':
+          keys.w.pressed = false
+          break
+        case 'KeyA':
+          keys.a.pressed = false
+          break
+        case 'KeyD':
+          keys.d.pressed = false
+          break
+      }
     })
     return;
 };
