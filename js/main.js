@@ -16,7 +16,6 @@ const poster = new Poster({ context: '2d' }),
     schoolClass: 'B3G',
     fullScreen: false,
   };
-
 // --- TWEAKPANE
 initPanel(options, poster);
 
@@ -27,10 +26,10 @@ const keys = {
   d: { pressed: false },
 };
 
-const SPEED = 5; // Vitesse du joueur
+const SPEED = 3; // Vitesse du joueur
 const ROTATE_SPEED = 0.05; // Vitesse de rotation
 const FRICTION = 0.98; // Friction pour décélérer progressivement
-const PROJECTILE_SPEED = 5; // Vitesse projectile
+const PROJECTILE_SPEED = 4; // Vitesse projectile
 
 
 class Player {
@@ -85,7 +84,6 @@ class Projectile {
   }
 
   draw(ctx) {
-    console.log({drawctx: ctx})
     ctx.beginPath();
     ctx.arc(
       this.position.x,
@@ -100,8 +98,7 @@ class Projectile {
     ctx.fill();
   }
 
-  update(ctx) {
-    this.draw(ctx);
+  update() {
     this.position.x += this.velocity.x;
     this.position.y += this.velocity.y;
   }
@@ -119,19 +116,31 @@ const draw = async (options) => {
 
   for (let i = projectiles.length - 1; i >= 0; i--) {
     const projectile = projectiles[i];
-    projectile.update(ctx);
+    projectile.draw(ctx);
   }
 };
 
 const animate = () => {
   const ctx = poster.ctx;
-  player.update();
+
+  player.update(ctx);
+  
   for (let i = projectiles.length - 1; i >= 0; i--) {
     const projectile = projectiles[i];
     projectile.update(ctx);
+
+    // supprimer de l'array quand en dehors de l'écran
+    if (
+      projectile.position.x + projectile.radius < 0 || 
+      projectile.position.x - projectile.radius > poster.innerWidth ||
+      projectile.position.y - projectile.radius > poster.innerHeight ||
+      projectile.position.y + projectile.radius < 0
+    ) {
+      projectiles.splice(i, 1);
+    }    
   }
 
-  poster.draw();
+  poster.draw(ctx);
   raf(animate);
 };
 
@@ -147,6 +156,7 @@ window.addEventListener('keydown', (event) => {
       keys.d.pressed = true;
       break;
     case ' ':
+      event.preventDefault();
       const res = {
         position: {
           x: player.position.x + Math.cos(player.rotation) * 30,
