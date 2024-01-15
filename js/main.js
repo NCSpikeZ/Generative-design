@@ -35,25 +35,35 @@ myFont.load().then(function(font){
   document.fonts.add(font);
 });
 
-let startTime = Date.now();
-console.log('starttime', startTime )
-const SPEED = 3; // Vitesse du joueur
+const SPEED = 2; // Vitesse du joueur
 const ROTATE_SPEED = 0.05; // Vitesse de rotation
 const FRICTION = 0.98; // Friction pour décélérer progressivement
 const PROJECTILE_SPEED = 4; // Vitesse projectile
+const projectileCooldown = 300; // Cooldown tirelet
 let lastProjectileTime = 0;
-const projectileCooldown = 300; // Cooldown tire
-let SpawnInterval = 2500; // Cooldown apparition asteroid
-
-let gameOver = false; // GAME OVER 
-let score = 0; // Scoring
 const maxHighScores = 5; // Highscore
 const backgroundOffset = { x: 0, y: 0 };
+
+let gameStartTime;
+let SpawnInterval = 1500; // Cooldown apparition asteroid
+let elapsedTimeInSeconds = 0;
+let gameOver = false; // GAME OVER 
+let score = 0; // Scoring
+
 
 function displayScore(ctx) {
   ctx.fillStyle = 'white';
   ctx.font = '14px PressStart2P-Regular';
-  ctx.fillText('Score: ' + score, 10, 30);
+  ctx.fillText('Score: ' + score, 40, 30);
+
+  const timerX = poster.innerWidth - 150;
+  const timerY = 30;
+  if (gameStartTime) {
+    const currentTime = Date.now();
+    elapsedTimeInSeconds = Math.floor((currentTime - gameStartTime) / 1000);
+    const timerText = `Time: ${elapsedTimeInSeconds}s`;
+    ctx.fillText(timerText, timerX, timerY);
+  }
 }
 
 function askForName() {
@@ -67,11 +77,8 @@ function askForName() {
 
 function updateHighScores() {
   const playerName = askForName();
-  const currentTime = Date.now();
-  console.log('currenttime', currentTime)
   const runData = {
-    timeSpent: (currentTime - startTime) / 1000,
-    asteroidsBroken: score / 10,
+  asteroidsBroken: score / 10,
   };
   highScores.push({ name: playerName, score, runData });
   highScores.sort((a, b) => b.score - a.score);
@@ -84,7 +91,7 @@ function displayHighScores(ctx) {
   ctx.font = '12px Press Start 2P';
   ctx.textAlign = 'center';
 
-  const titleY = poster.innerHeight / 2 - 100;
+  const titleY = poster.innerHeight / 2;
   const lineHeight = 30;
 
   ctx.fillText('High Scores:', poster.innerWidth / 2, titleY);
@@ -101,11 +108,11 @@ function displayHighScores(ctx) {
   }
 
   const lastScore = highScores[0];
-  if (lastScore) {
-    const additionalLine = `You spent ${lastScore.runData.timeSpent} seconds alive`;
-    const additionalLine2= `and destroyed ${lastScore.runData.asteroidsBroken} asteroids!`;
+  let additionalLineY = titleY + lineHeight * (highScores.length + 2);
 
-    const additionalLineY = titleY + lineHeight * (highScores.length + 2); // Adjust the position as needed
+  if (lastScore) {
+    const additionalLine = `You spent ${elapsedTimeInSeconds} seconds alive`;
+    const additionalLine2= `and destroyed ${lastScore.runData.asteroidsBroken} asteroids!`;
 
     ctx.textBaseline = "top";
     const nextLineY = additionalLineY + lineHeight;
@@ -113,7 +120,15 @@ function displayHighScores(ctx) {
     ctx.fillText(additionalLine, poster.innerWidth / 2, additionalLineY);
     ctx.fillText(additionalLine2, poster.innerWidth / 2, nextLineY);
   }
-
+  const image = new Image();
+  image.src = './css/spaceparanoids.png';
+  image.onload = () => {
+    const desiredImageWidth = 200;
+    const desiredImageHeight = 200;
+    const imageX = poster.innerWidth / 2 - desiredImageWidth / 2;
+    const imageY = additionalLineY - desiredImageWidth - 220; 
+    ctx.drawImage(image, imageX, imageY, desiredImageWidth, desiredImageHeight);
+  };
   ctx.textAlign = 'left';
 }
 
@@ -474,10 +489,12 @@ const draw = async (options) => {
 };
 
 const animate = () => {
-  startTime = Date.now();
   const ctx = poster.ctx;
 
   if (!gameOver) {
+    if (!gameStartTime) {
+      gameStartTime = Date.now();
+    }
     player.update(ctx);
   
     for (let j = projectiles.length - 1; j >= 0; j--) {
