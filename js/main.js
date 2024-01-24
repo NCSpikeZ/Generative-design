@@ -518,11 +518,21 @@ const animate = () => {
       asteroid.update(ctx);
 
       if (circleTriangleCollision(asteroid, player.getVertices())) {
+        playPlayerDestruction()
         console.log('GAME OVER')
         clearInterval(intervalId);
         gameOver = true;
         updateHighScores();
       }
+
+      function playPlayerDestruction() {
+        const explosionSound = 'explosionPlayer.wav';
+        const explosionAudioPlayer = new Audio(explosionSound);
+      
+        explosionAudioPlayer.addEventListener('canplaythrough', () => {
+          explosionAudioPlayer.play();
+        });
+      }      
 
       if (
         asteroid.position.x + asteroid.radius < 0 || 
@@ -550,7 +560,7 @@ const animate = () => {
               asteroids.splice(i, 1);
               score += 10;
             }
-      
+            playRandomDestructionSound()
             projectiles.splice(j, 1);
           }
         }
@@ -561,6 +571,15 @@ const animate = () => {
     raf(animate);
   }
 };
+
+function playRandomDestructionSound() {
+  const explosionSounds = ['explosion.wav', 'explosion1.wav'];
+  const randomIndex = Math.floor(Math.random() * explosionSounds.length);
+  const randomExplosionSound = explosionSounds[randomIndex];
+
+  const explosionAudio = new Audio(randomExplosionSound);
+  explosionAudio.play();
+}
 
 window.addEventListener('keydown', (event) => {
   const currentTime = Date.now();
